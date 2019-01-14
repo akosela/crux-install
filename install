@@ -394,25 +394,12 @@ kernel() {
 download_kernel() {
 	echo "Copy kernel image from? (ssh) [user@example.org]"
 	read download
-	echo -n "Copy initramfs? [n] "
-	read initrd
 
-	case $initrd in
-	[Yy])
-		backup_kernel
-		scp ${download}:/boot/{vmlinuz*,System.map*,initramfs*} \
-			/mnt/boot && echo "Downloading kernel modules... " &&
-			ssh $download 'cd / && tar zcf - lib/modules/*' |
-			(cd /mnt && tar zxf -)
-		;;
-	*)
-		backup_kernel
-		scp ${download}:/boot/{vmlinuz*,System.map*} /mnt/boot &&
-			echo "Downloading kernel modules... " &&
-			ssh $download 'cd / && tar zcf - lib/modules/*' |
-			(cd /mnt && tar zxf -)
-		;;
-	esac
+	backup_kernel
+	scp ${download}:/boot/{vmlinuz*,System.map*} /mnt/boot &&
+		echo "Downloading kernel modules... " &&
+		ssh $download 'cd / && tar zcf - lib/modules/*' |
+		(cd /mnt && tar zxf -)
 
 	if [ ! $? = 0 ]; then
 		echo "Download failed."
@@ -507,15 +494,11 @@ bootloader() {
 			if [ -f /mnt/boot/vmlinuz ]; then
 				mv /mnt/boot/vmlinuz /mnt/boot/vmlinuz-1
 				mv /mnt/boot/System.map /mnt/boot/System.map-1
-				mv /mnt/boot/initramfs /mnt/boot/initramfs-1 \
-					>/dev/null 2>&1
 			fi
 			if [ -f /mnt/boot/vmlinuz.old ]; then
 				mv /mnt/boot/vmlinuz.old /mnt/boot/vmlinuz-old
 				mv /mnt/boot/System.map.old \
 					/mnt/boot/System.map-old
-				mv /mnt/boot/initramfs.old \
-					/mnt/boot/initramfs-old >/dev/null 2>&1
 			fi
 
 			$chr grub-install /dev/$rdisk >/dev/null 2>&1
@@ -564,12 +547,6 @@ image=/boot/vmlinuz
 EOF
 	fi
 
-	if [ -f /mnt/boot/initramfs* ]; then
-		echo "	initrd=/boot/initramfs" >>/mnt/etc/lilo.conf
-		if [ ! -f /mnt/boot/initramfs ]; then
-			$chr ln -s /boot/initramfs* /boot/initramfs
-		fi
-	fi
 	if [ ! -f /mnt/boot/vmlinuz ]; then
 		$chr ln -s /boot/vmlinuz* /boot/vmlinuz
 	fi
