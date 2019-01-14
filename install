@@ -1,0 +1,603 @@
+#!/bin/sh
+# Copyright 2019 Andy Kosela.  All rights reserved.
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
+
+version=3.4
+
+main() {
+	echo "Welcome to the CRUX $version installation program."
+	echo "" 
+	echo -n "(I)nstall, (U)pgrade, or (S)hell? [i] "
+	read resp
+	case $resp in
+	[Ii])
+		install
+		;;
+	[Uu])
+		upgrade
+		;;
+	[Ss])
+		shell
+		;;
+	*)
+		install
+		;;
+	esac
+}
+
+shell() {
+	exit
+}
+
+upgrade() {
+	disk
+	diskn
+	echo -n "Which partition is the root? [${rdisk}2] "
+	read rdiskr
+	rdiskr=${rdiskr:-${rdisk}2}
+	mount /dev/$rdiskr /mnt
+	/usr/bin/setup
+	chroot
+	upgrade_kernel
+	end
+}
+
+install() {
+	hostname
+	network
+	timezone
+	disk
+	diskn
+	pdisk
+	setup
+	chroot
+	password
+	user
+	etc
+	kernel
+	end
+}
+
+hostname() {
+	echo -n "System hostname? [crux] "
+	read hostn
+	hostn=${hostn:-crux}
+}
+
+network() {
+	nic=`ifconfig -a | grep HWaddr | cut -d' ' -f1 | paste -sd ' '`
+	nic1=`echo $nic | cut -d' ' -f1`
+	echo ""
+	echo "Available network interfaces are: $nic"
+	echo -n "Which network interface do you wish to configure? (or (N)one) [$nic1] "
+	read nic_conf
+	case $nic_conf in
+	[NnOoNnEe]*)
+		nic_conf=''
+		;;
+	*)
+		nic_conf=${nic_conf:-$nic1}
+		ipv4
+		;;
+	esac
+}
+
+ipv4() {
+	echo -n "IPv4 address for $nic_conf? [dhcp] "
+	read ip
+	case $ip in
+	[0-9]*)
+		echo -n "Subnet mask for $nic_conf? [24] "
+		read subnet_mask
+		subnet_mask=${subnet_mask:-24}
+
+		gw=`echo $ip | sed 's/\([0-9]*.[0-9]*.[0-9]*.\)[0-9]*/\11/'`
+		echo -n "Gateway for $nic_conf? [$gw] "
+		read gw2
+		gw2=${gw2:-$gw}
+		echo -n "Primary DNS server? [$gw2] "
+		read ns1
+		ns1=${ns1:-$gw2}
+		echo -n "Secondary DNS server? [none] "
+		read ns2
+		;;
+	*)
+		ip=dhcp
+		;;
+	esac
+}
+
+timezone() {
+	echo -n "What timezone are you in? [UTC] "
+	read tzone
+	tzone=${tzone:-UTC}
+}
+
+disk() {
+	disks=`lsblk | grep disk | cut -d' ' -f1 | paste -sd ' '`
+	disk1=`echo $disks | cut -d' ' -f1`
+	echo ""
+	echo "Available disks are: $disks"
+}
+
+diskn() {
+	echo -n "Which disk is the root disk? ('?' for details) [$disk1] "
+	read rdisk
+	case $rdisk in
+	?)
+		lsblk | grep -e NAME -e disk
+		diskn
+		;;
+	*)
+		rdisk=${rdisk:-$disk1}
+		;;
+	esac
+}
+
+pdisk() {
+	echo ""
+	echo "The next step will erase all your data!"
+	echo -n "(A)uto-partition or (F)disk(8)? [a] "
+	read resp
+	case $resp in
+	[Aa])
+		autopart
+		;;
+	[Ff])
+		filesystem
+		fdisk /dev/$rdisk
+		echo -n "Which partition is the swap? [${rdisk}1] "
+		read sw
+		mkswap /dev/$sw >/dev/null 2>&1
+		swapon /dev/$sw >/dev/null 2>&1
+
+		echo -n "Which partition is the root? [${rdisk}2] "
+		read rdiskr
+		rdiskr=${rdiskr:-${rdisk}2}
+
+		for e in `lsblk | grep -v SWAP | grep part | cut -d- -f2 |
+			cut -d' ' -f1`; do
+			mkfs.$fs /dev/$e >/dev/null 2>&1
+		done
+		mount /dev/$rdiskr /mnt
+
+		echo -n "Which partition is the /boot? [none] "
+		read boot
+		if [ ! $boot = '' ]; then
+			mount /dev/$boot /mnt/boot
+		fi
+		echo -n "Which partition is the /home? [none] "
+		read home
+		if [ ! $home = '' ]; then
+			mount /dev/$home /mnt/home
+		fi
+		echo -n "Which partition is the /tmp? [none] "
+		read tmp
+		if [ ! $tmp = '' ]; then
+			mount /dev/$tmp /mnt/tmp
+		fi
+		echo -n "Which partition is the /usr? [none] "
+		read usr
+		if [ ! $usr = '' ]; then
+			mount /dev/$usr /mnt/usr
+		fi
+		echo -n "Which partition is the /var? [none] "
+		read var
+		if [ ! $var = '' ]; then
+			mount /dev/$var /mnt/var
+		fi
+		;;
+	*)
+		autopart
+		;;
+	esac
+}
+
+filesystem() {
+	echo -n "Which filesystem you want to use? ('?' for list) [ext4] "
+	read fs
+	case $fs in
+	[EeXxTt2]*)
+		fs=ext2
+		;;
+	[EeXxTt3]*)
+		fs=ext3
+		;;
+	[EeXxTt4]*)
+		fs=ext4
+		;;
+	[BbTtRrFfSs]*)
+		fs=btrfs
+		;;
+	[JjFfSs]*)
+		fs=jfs
+		;;
+	[XxFfSs]*)
+		fs=xfs
+		;;
+	?)
+		echo "ext2, ext3, ext4, btrfs, jfs, xfs"
+		filesystem
+		;;
+	*)
+		fs=ext4
+		;;
+	esac
+}
+
+autopart() {
+	wipefs -a /dev/$rdisk >/dev/null 2>&1
+	filesystem
+	echo -n "Size of the swap partition? (in MB) [1024] "
+	read sw
+	sw=${sw:-1024}
+
+	echo "n\np\n1\n\n+${sw}m\ntype\n82\nw\n" | fdisk /dev/$rdisk >/dev/null 2>&1
+	echo "n\np\n2\n\n\nw\n" | fdisk /dev/$rdisk >/dev/null 2>&1
+	partprobe /dev/$rdisk
+	mkswap /dev/${rdisk}1 >/dev/null 2>&1
+	swapon /dev/${rdisk}1 >/dev/null 2>&1
+	mkfs.$fs /dev/${rdisk}2 >/dev/null 2>&1
+	rdiskr=${rdisk}2
+	mount /dev/$rdiskr /mnt
+}
+
+setup() {
+	echo ""
+	echo -n "Core packages only? [y] "
+	read resp
+	case $resp in
+	[Nn])
+		/usr/bin/setup
+		;;
+	*)
+		install_pkg
+		;;
+	esac
+}
+
+install_pkg() {
+	crux=/media/crux
+	src=/mnt/usr/src
+
+	if [ ! -d /mnt/var/lib/pkg ]; then
+		mkdir -p /mnt/var/lib/pkg
+		touch /mnt/var/lib/pkg/db
+	fi
+	if [ -d /mnt/var/lib/pkg/rejected ]; then
+		rm -rf /mnt/var/lib/pkg/rejected
+	fi
+	if [ ! -d $src ]; then
+		mkdir -p $src
+	fi
+	if [ ! -d /mnt/root ]; then
+		mkdir -p /mnt/root
+	fi
+
+	echo -n "Installing packages... "
+	for pkg in `ls -1 $crux/core`; do
+		pkgadd -r /mnt $crux/core/$pkg >/dev/null 2>&1
+	done
+}
+
+chroot() {
+	mount --bind /dev /mnt/dev
+	mount --bind /tmp /mnt/tmp
+	mount --bind /run /mnt/run
+	mount -t proc proc /mnt/proc
+	mount -t sysfs none /mnt/sys
+	mount -t devpts -o noexec,nosuid,gid=tty,mode=0620 devpts /mnt/dev/pts
+
+	if grep -qs /sys/firmware/efi/efivars /proc/mounts; then
+		mount --bind /sys/firmware/efi/efivars \
+			/mnt/sys/firmware/efi/efivars
+	fi
+	chr="/usr/bin/chroot /mnt"
+}
+
+password() {
+	sed -i -e '/PASS_ALWAYS_WARN/s/yes/no/' \
+		-e '/USERGROUPS_ENAB/s/no/yes/' /mnt/etc/login.defs \
+		>/dev/null 2>&1
+	echo ""
+	echo "Creating password for root account."
+	$chr passwd -q
+}
+
+user() {
+	echo -n "Please create a local account. [user] "
+	read RESP
+	RESP=${RESP:-user}
+	export RESP
+	$chr useradd -m -c $RESP -s /bin/bash $RESP
+	$chr passwd -q $RESP
+}
+
+etc() {
+	cat >/mnt/etc/fstab <<EOF
+/dev/$rdiskr / ext4 defaults 0 1
+/dev/${rdisk}1 swap swap defaults 0 0
+devpts /dev/pts devpts noexec,nosuid,gid=tty,mode=0620 0 0
+shm /dev/shm tmpfs defaults 0 0
+EOF
+
+	cat >/mnt/etc/hosts <<EOF
+127.0.0.1	localhost
+EOF
+	if [ ! $ns1 = '' ]; then
+		if [ ! $ns2 = '' ]; then
+			cat >/mnt/etc/resolv.conf <<EOF
+nameserver $ns1
+nameserver $ns2
+EOF
+		else
+			cat >/mnt/etc/resolv.conf <<EOF
+nameserver $ns1
+EOF
+		fi
+	fi
+
+	cat >/mnt/etc/rc.conf <<EOF
+#
+# /etc/rc.conf: system configuration
+#
+
+FONT=default
+KEYMAP=us
+TIMEZONE=$tzone
+HOSTNAME=$hostn
+SYSLOG=sysklogd
+SERVICES=(lo net crond sshd)
+
+# End of file
+EOF
+
+	if [ ! $gw2 = '' ]; then
+		sed -i -e 's/="DHCP"/="static"/'		\
+			-e "s/DEV=.*/DEV=$nic_conf/"		\
+			-e "s/ADDR=.*/ADDR=$ip/" 		\
+			-e "s/MASK=.*/MASK=$subnet_mask/"	\
+			-e "s/GW=.*/GW=$gw2/" /mnt/etc/rc.d/net
+	fi
+}
+
+upgrade_kernel() {
+	merge
+	echo -n "Upgrade kernel? [n] "
+	read resp 
+	case $resp in
+	[Yy])
+		kernel
+		;;
+	*)
+		resp=n
+		;;
+	esac
+}
+
+kernel() {
+	echo ""
+	echo "Configuring kernel."
+	echo -n "Build your own kernel? [n] "
+	read resp
+	case $resp in
+	[Yy])
+		build_kernel
+		;;
+	*)
+		download_kernel
+		;;
+	esac
+}
+
+download_kernel() {
+	echo "Copy kernel image from? (ssh) [user@example.org]"
+	read download
+	echo -n "Copy initramfs? [n] "
+	read initrd
+
+	case $initrd in
+	[Yy])
+		backup_kernel
+		scp ${download}:/boot/{vmlinuz*,System.map*,initramfs*} \
+			/mnt/boot && echo "Downloading kernel modules... " &&
+			ssh $download 'cd / && tar zcf - lib/modules/*' |
+			(cd /mnt && tar zxf -)
+		;;
+	*)
+		backup_kernel
+		scp ${download}:/boot/{vmlinuz*,System.map*} /mnt/boot &&
+			echo "Downloading kernel modules... " &&
+			ssh $download 'cd / && tar zcf - lib/modules/*' |
+			(cd /mnt && tar zxf -)
+		;;
+	esac
+
+	if [ ! $? = 0 ]; then
+		echo "Download failed."
+		echo "Falling back to building a custom kernel."
+		build_kernel
+	fi
+	bootloader
+}
+
+backup_kernel() {
+	if [ -f /mnt/boot/vmlinuz ]; then
+		cp /mnt/boot/vmlinuz /mnt/boot/vmlinuz.old
+		cp /mnt/boot/System.map /mnt/boot/System.map.old
+	fi
+}
+
+build_kernel() {
+	export DIR=usr/src/linux-*
+	kernel=$crux/kernel/linux-*.tar.xz
+	kernel_version=`basename $kernel .tar.xz | sed "s/linux-//"`
+
+	echo -n "Copying and uncompressing kernel tarball... "
+	tar -C $src -xJf $kernel
+	cp -f $crux/kernel/linux-$kernel_version.defconfig \
+		$src/linux-$kernel_version/.config
+	chown -R root.root $src/linux-$kernel_version
+	chmod -R go-w $src/linux-$kernel_version
+	if [ -f $crux/kernel/*patch ]; then
+		for patch in $crux/kernel/*patch; do
+			patch -sd $src/linux-$kernel_version -p1 < $patch
+			cp $patch $src
+		done
+	fi
+	if [ ! -d /mnt/lib/modules/$kernel_version ]; then
+		mkdir -p /mnt/lib/modules/$kernel_version
+		depmod -b /mnt -a $kernel_version >/dev/null 2>&1
+	fi
+
+	echo ""
+	echo -n "Download custom configuration file? [n] " 
+	read resp
+	case $resp in
+	[Yy])
+		echo -n "Location of .config? ('http://example.org/.config' "
+			echo "or (ssh) 'user@example.org:/tmp/.config') "
+		read config
+		case $config in
+		[http]*)
+			wget -q $config
+			cp .config $src/linux-$kernel_version
+			;;
+		[ftp]*)
+			wget -q $config
+			cp .config $src/linux-$kernel_version
+			;;
+		*)
+			scp $config $src/linux-$kernel_version
+			;;
+		esac
+		;;
+	*)
+		resp=n
+		;;
+	esac
+
+	$chr /bin/bash -c "cd /$DIR && make menuconfig"
+	$chr /bin/bash -c "cd /$DIR && make all"
+	$chr /bin/bash -c "cd /$DIR && make modules_install"
+
+	backup_kernel
+	cp /mnt/$DIR/arch/x86/boot/bzImage /mnt/boot/vmlinuz
+	cp /mnt/$DIR/System.map /mnt/boot
+	$chr /bin/bash -c "cd /$DIR && make clean"
+	bootloader
+}
+
+bootloader() {
+	grub=/mnt/boot/grub
+	echo ""
+	echo "Configuring bootloader."
+	echo -n "(L)ilo or (G)rub? [l] "
+	read resp
+	case $resp in
+	[Gg])
+		if [ `grep ^grub2$ /mnt/var/lib/pkg/db` ]; then
+			if [ -f $grub/grub.cfg ]; then
+				cp $grub/grub.cfg $grub/grub.cfg.old
+			else
+				mkdir /mnt/boot/grub
+			fi
+
+			if [ -f /mnt/boot/vmlinuz ]; then
+				mv /mnt/boot/vmlinuz /mnt/boot/vmlinuz-1
+				mv /mnt/boot/System.map /mnt/boot/System.map-1
+				mv /mnt/boot/initramfs /mnt/boot/initramfs-1 \
+					>/dev/null 2>&1
+			fi
+			if [ -f /mnt/boot/vmlinuz.old ]; then
+				mv /mnt/boot/vmlinuz.old /mnt/boot/vmlinuz-old
+				mv /mnt/boot/System.map.old \
+					/mnt/boot/System.map-old
+				mv /mnt/boot/initramfs.old \
+					/mnt/boot/initramfs-old >/dev/null 2>&1
+			fi
+
+			$chr grub-install /dev/$rdisk >/dev/null 2>&1
+			$chr grub-mkconfig -o /boot/grub/grub.cfg
+		else
+			echo "You don't seem to have GRUB2 installed."
+			echo "Falling back to LILO."
+			lilo
+		fi
+		;;
+	*)
+		lilo
+		;;
+	esac
+}
+
+lilo() {
+	if [ -f /mnt/etc/lilo.conf ]; then
+		cp /mnt/etc/lilo.conf /mnt/etc/lilo.conf.old
+	fi
+
+	if [ -f /mnt/boot/vmlinuz.old ]; then
+		if [ ! `grep prompt /mnt/etc/lilo.conf` ]; then
+			sed -i '4s/^/\nprompt\ntimeout=50/' /mnt/etc/lilo.conf
+			cat >>/mnt/etc/lilo.conf <<EOF
+image=/boot/vmlinuz.old
+	label=CRUX.old
+	read-only
+	root=/dev/$rdiskr
+EOF
+		fi
+	else
+		cat >/mnt/etc/lilo.conf <<EOF
+#
+# /etc/lilo.conf: lilo(8) configuration, see lilo.conf(5)
+#
+
+lba32
+compact
+install=text
+boot=/dev/$rdisk
+image=/boot/vmlinuz
+	label=CRUX
+	read-only
+	root=/dev/$rdiskr
+EOF
+	fi
+
+	if [ -f /mnt/boot/initramfs* ]; then
+		echo "	initrd=/boot/initramfs" >>/mnt/etc/lilo.conf
+		if [ ! -f /mnt/boot/initramfs ]; then
+			$chr ln -s /boot/initramfs* /boot/initramfs
+		fi
+	fi
+	if [ ! -f /mnt/boot/vmlinuz ]; then
+		$chr ln -s /boot/vmlinuz* /boot/vmlinuz
+	fi
+
+	$chr /sbin/lilo >/dev/null 2>&1
+}
+
+merge() {
+	$chr rejmerge
+}
+
+end() {
+	echo ""
+	echo "Your CRUX system is ready.  Please reboot."
+	echo -n "Exit to (S)hell, (H)alt, or (R)eboot? [r] "
+	read resp
+	case $resp in
+	[Ss])
+		echo "Your root is mounted at /mnt."
+		exit
+		;;
+	[Hh])
+		/sbin/shutdown -Ph now
+		;;
+	*)
+		/sbin/reboot
+		;;
+	esac
+}
+
+main
