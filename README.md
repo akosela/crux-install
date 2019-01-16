@@ -35,9 +35,11 @@ Welcome to the CRUX 3.4 installation program.
 ```
 
 Choosing the default answer [install] will perform a typical fresh
-installation.
+installation.  You can choose to build your own kernel or copy it from other
+system.  When you are building many servers on identical hardware it does not
+make sense to spend time building the kernel every time.
 
-These are the questions you will be asked.
+The following questions are part of the install process:
 
 ```
 System hostname? [crux]
