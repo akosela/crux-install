@@ -25,7 +25,7 @@ steps and also allows customization.
 ## help
 
 The install script will ask you several questions.  The default answers (in [])
-are sane and are designed to install a base CRUX system with a minimum of your
+are sane and designed to install a base CRUX system with a minimum of your
 intervention.
 
 ```
