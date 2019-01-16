@@ -4,7 +4,7 @@ Interactive installation script for CRUX[1].  It is completely text
 based and assumes sane defaults.  It speeds up CRUX installation by
 automating manual steps and also allows customization.
 
-## Install
+## install
 
 ```
 (1) Boot from ISO
