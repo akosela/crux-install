@@ -238,7 +238,13 @@ autopart() {
 	partprobe /dev/$rdisk
 	mkswap /dev/${rdisk}1 >/dev/null 2>&1
 	swapon /dev/${rdisk}1 >/dev/null 2>&1
-	mkfs.$fs /dev/${rdisk}2 >/dev/null 2>&1
+
+	if [ $fs = jfs ]; then
+		echo $fs
+		mkfs.$fs -f /dev/${rdisk}2 >/dev/null 2>&1
+	else
+		mkfs.$fs /dev/${rdisk}2 >/dev/null 2>&1
+	fi
 	rdiskr=${rdisk}2
 	mount /dev/$rdiskr /mnt
 }
@@ -316,7 +322,7 @@ user() {
 
 etc() {
 	cat >/mnt/etc/fstab <<EOF
-/dev/$rdiskr / ext4 defaults 0 1
+/dev/$rdiskr / $fs defaults 0 1
 /dev/${rdisk}1 swap swap defaults 0 0
 devpts /dev/pts devpts noexec,nosuid,gid=tty,mode=0620 0 0
 shm /dev/shm tmpfs defaults 0 0
@@ -392,7 +398,7 @@ kernel() {
 }
 
 download_kernel() {
-	echo "Copy kernel image from? (ssh) [user@example.org]"
+	echo -n "Copy kernel image from? (ssh) [user@example.org] "
 	read download
 
 	backup_kernel
