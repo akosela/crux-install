@@ -138,7 +138,7 @@ diskn() {
 pdisk() {
 	echo ""
 	echo "The next step will erase all your data!"
-	echo -n "(A)uto-partition or (F)disk(8)? [a] "
+	echo -n "(A)uto-partition or (F)disk? [a] "
 	read resp
 	case $resp in
 	[Aa])
