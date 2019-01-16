@@ -10,12 +10,15 @@ automating manual steps and also allows customization.
 (1) Boot from ISO
 
 (2) Initialize network
+
  # dhcpcd
 
 (3) Download install script
+
  # wget https://raw.githubusercontent.com/akosela/crux-install/master/install
 
 (4) Run it
+
  # sh install
 ```
 
