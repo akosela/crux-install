@@ -149,6 +149,7 @@ pdisk() {
 		fdisk /dev/$rdisk
 		echo -n "Which partition is the swap? [${rdisk}1] "
 		read sw
+		sw=${sw:-${rdisk}1}
 		mkswap /dev/$sw >/dev/null 2>&1
 		swapon /dev/$sw >/dev/null 2>&1
 
