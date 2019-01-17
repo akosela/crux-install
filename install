@@ -431,7 +431,7 @@ build_kernel() {
 	kernel_version=`basename $kernel .tar.xz | sed "s/linux-//"`
 
 	echo -n "Copying and uncompressing kernel tarball... "
-	tar -C /$src -xJf $kernel
+	tar -C $src -xJf $kernel
 	cp -f $crux/kernel/linux-$kernel_version.defconfig \
 		$src/linux-$kernel_version/.config
 	chown -R root.root $src/linux-$kernel_version
@@ -452,8 +452,8 @@ build_kernel() {
 	read resp
 	case $resp in
 	[Yy])
-		echo -n "Location of .config? ('http://example.org/.config' \
-			or (ssh) 'user@example.org:/tmp/.config') "
+		echo -n "Location of .config?  ('http://example.org/.config' "
+		echo -n "or (ssh) 'user@example.org:/tmp/.config') "
 		read config
 		case $config in
 		[http]*)
