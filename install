@@ -158,7 +158,11 @@ pdisk() {
 
 		for e in `lsblk | grep -v SWAP | grep part | cut -d- -f2 |
 			cut -d' ' -f1`; do
-			mkfs.$fs /dev/$e >/dev/null 2>&1
+				if [ $fs = jfs ]; then
+					mkfs.$fs -f /dev/$e >/dev/null 2>&1
+				else
+					mkfs.$fs /dev/$e >/dev/null 2>&1
+				fi
 		done
 		mount /dev/$rdiskr /mnt
 
@@ -240,7 +244,6 @@ autopart() {
 	swapon /dev/${rdisk}1 >/dev/null 2>&1
 
 	if [ $fs = jfs ]; then
-		echo $fs
 		mkfs.$fs -f /dev/${rdisk}2 >/dev/null 2>&1
 	else
 		mkfs.$fs /dev/${rdisk}2 >/dev/null 2>&1
