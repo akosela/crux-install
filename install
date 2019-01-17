@@ -239,7 +239,7 @@ autopart() {
 	sizesw=${sizesw:-1024}
 	sw=${rdisk}1
 
-	echo "n\np\n1\n\n+${sizesw}m\ntype\n82\nw\n" | \
+	echo "n\np\n1\n\n+${sizesw}m\ntype\n82\nw\n" |
 		fdisk /dev/$rdisk >/dev/null 2>&1
 	echo "n\np\n2\n\n\nw\n" | fdisk /dev/$rdisk >/dev/null 2>&1
 	partprobe /dev/$rdisk
@@ -489,7 +489,6 @@ build_kernel() {
 }
 
 bootloader() {
-	grub=/mnt/boot/grub
 	echo ""
 	echo "Configuring bootloader."
 	echo -n "(L)ilo or (G)rub? [l] "
@@ -497,6 +496,7 @@ bootloader() {
 	case $resp in
 	[Gg])
 		if [ `grep ^grub2$ /mnt/var/lib/pkg/db` ]; then
+			grub=/mnt/boot/grub
 			if [ -f $grub/grub.cfg ]; then
 				cp $grub/grub.cfg $grub/grub.cfg.old
 			else
