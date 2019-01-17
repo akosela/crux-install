@@ -234,14 +234,16 @@ autopart() {
 	wipefs -a /dev/$rdisk >/dev/null 2>&1
 	filesystem
 	echo -n "Size of the swap partition? (in MB) [1024] "
-	read sw
-	sw=${sw:-1024}
+	read sizesw
+	sizesw=${sizesw:-1024}
+	sw=${rdisk}1
 
-	echo "n\np\n1\n\n+${sw}m\ntype\n82\nw\n" | fdisk /dev/$rdisk >/dev/null 2>&1
+	echo "n\np\n1\n\n+${sizesw}m\ntype\n82\nw\n" | \
+		fdisk /dev/$rdisk >/dev/null 2>&1
 	echo "n\np\n2\n\n\nw\n" | fdisk /dev/$rdisk >/dev/null 2>&1
 	partprobe /dev/$rdisk
-	mkswap /dev/${rdisk}1 >/dev/null 2>&1
-	swapon /dev/${rdisk}1 >/dev/null 2>&1
+	mkswap /dev/$sw >/dev/null 2>&1
+	swapon /dev/$sw >/dev/null 2>&1
 
 	if [ $fs = jfs ]; then
 		mkfs.$fs -f /dev/${rdisk}2 >/dev/null 2>&1
@@ -326,7 +328,7 @@ user() {
 etc() {
 	cat >/mnt/etc/fstab <<EOF
 /dev/$rdiskr / $fs defaults 0 1
-/dev/${rdisk}1 swap swap defaults 0 0
+/dev/$sw swap swap defaults 0 0
 devpts /dev/pts devpts noexec,nosuid,gid=tty,mode=0620 0 0
 shm /dev/shm tmpfs defaults 0 0
 EOF
