@@ -137,7 +137,6 @@ diskn() {
 
 pdisk() {
 	echo ""
-	echo "The next step will erase all your data!"
 	echo -n "(A)uto-partition or (F)disk? [a] "
 	read resp
 	case $resp in
@@ -157,41 +156,46 @@ pdisk() {
 		read rdiskr
 		rdiskr=${rdiskr:-${rdisk}2}
 
-		for e in `lsblk | grep -v SWAP | grep part | cut -d- -f2 |
-			cut -d' ' -f1`; do
-				if [ $fs = jfs ]; then
-					mkfs.$fs -f /dev/$e >/dev/null 2>&1
-				else
-					mkfs.$fs /dev/$e >/dev/null 2>&1
-				fi
-		done
+		makefs
 		mount /dev/$rdiskr /mnt
+		rdiskrtmp=$rdiskr
 
 		echo -n "Which partition is the /boot? [none] "
 		read boot
 		if [ ! $boot = '' ]; then
+			rdiskr=$boot
+			makefs
 			mount /dev/$boot /mnt/boot
 		fi
 		echo -n "Which partition is the /home? [none] "
 		read home
 		if [ ! $home = '' ]; then
+			rdiskr=$home
+			makefs
 			mount /dev/$home /mnt/home
 		fi
 		echo -n "Which partition is the /tmp? [none] "
 		read tmp
 		if [ ! $tmp = '' ]; then
+			rdiskr=$tmp
+			makefs
 			mount /dev/$tmp /mnt/tmp
 		fi
 		echo -n "Which partition is the /usr? [none] "
 		read usr
 		if [ ! $usr = '' ]; then
+			rdiskr=$usr
+			makefs
 			mount /dev/$usr /mnt/usr
 		fi
 		echo -n "Which partition is the /var? [none] "
 		read var
 		if [ ! $var = '' ]; then
+			rdiskr=$var
+			makefs
 			mount /dev/$var /mnt/var
 		fi
+		rdiskr=$rdiskrtmp
 		;;
 	*)
 		autopart
@@ -232,6 +236,21 @@ filesystem() {
 }
 
 autopart() {
+	echo "Auto-partition will erase all your data!"
+	echo -n "Do you wish to continue? [y] "
+	read resp
+	case $resp in
+	[Nn])
+		shell
+		;;
+	[Yy])
+		resp=yes
+		;;
+	*)
+		resp=yes
+		;;
+	esac
+
 	wipefs -a /dev/$rdisk >/dev/null 2>&1
 	filesystem
 	echo -n "Size of the swap partition? (in MB) [1024] "
@@ -246,13 +265,17 @@ autopart() {
 	mkswap /dev/$sw >/dev/null 2>&1
 	swapon /dev/$sw >/dev/null 2>&1
 
-	if [ $fs = jfs ]; then
-		mkfs.$fs -f /dev/${rdisk}2 >/dev/null 2>&1
-	else
-		mkfs.$fs /dev/${rdisk}2 >/dev/null 2>&1
-	fi
 	rdiskr=${rdisk}2
+	makefs
 	mount /dev/$rdiskr /mnt
+}
+
+makefs() {
+	if [ $fs = jfs ]; then
+		mkfs.$fs -f /dev/$rdiskr >/dev/null 2>&1
+	else
+		mkfs.$fs /dev/$rdiskr >/dev/null 2>&1
+	fi
 }
 
 setup() {
