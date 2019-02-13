@@ -54,8 +54,8 @@ Creating password for root account.
 New password:
 Please create a local account. [user]
 New password:
-Build your own kernel? [n]
-Copy kernel image from? (ssh) [user@example.org]
+Build your own kernel? [y]
+Download custom .config? [n]
 (L)ilo or (G)rub? [l]
 
 Your CRUX system is ready.  Please reboot.

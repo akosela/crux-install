@@ -414,14 +414,17 @@ upgrade_kernel() {
 kernel() {
 	echo ""
 	echo "Configuring kernel."
-	echo -n "Build your own kernel? [n] "
+	echo -n "Build your own kernel? [y] "
 	read resp
 	case $resp in
 	[Yy])
 		build_kernel
 		;;
-	*)
+	[Nn])
 		download_kernel
+		;;
+	*)
+		build_kernel
 		;;
 	esac
 }
@@ -474,7 +477,7 @@ build_kernel() {
 	fi
 
 	echo ""
-	echo -n "Download custom .config file? [n] " 
+	echo -n "Download custom .config? [n] " 
 	read resp
 	case $resp in
 	[Yy])
