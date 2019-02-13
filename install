@@ -474,7 +474,7 @@ build_kernel() {
 	fi
 
 	echo ""
-	echo -n "Download custom configuration file? [n] " 
+	echo -n "Download custom .config file? [n] " 
 	read resp
 	case $resp in
 	[Yy])
