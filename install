@@ -284,9 +284,11 @@ setup() {
 	read resp
 	case $resp in
 	[Nn])
+		k=1
 		/usr/bin/setup
 		;;
 	*)
+		k=0
 		install_pkg
 		;;
 	esac
@@ -454,11 +456,7 @@ backup_kernel() {
 	fi
 }
 
-build_kernel() {
-	export DIR=usr/src/linux-*
-	kernel=$crux/kernel/linux-*.tar.xz
-	kernel_version=`basename $kernel .tar.xz | sed "s/linux-//"`
-
+untar_kernel() {
 	echo -n "Copying and uncompressing kernel tarball... "
 	tar -C $src -xJf $kernel
 	cp -f $crux/kernel/linux-$kernel_version.defconfig \
@@ -474,6 +472,16 @@ build_kernel() {
 	if [ ! -d /mnt/lib/modules/$kernel_version ]; then
 		mkdir -p /mnt/lib/modules/$kernel_version
 		depmod -b /mnt -a $kernel_version >/dev/null 2>&1
+	fi
+}
+
+build_kernel() {
+	export DIR=usr/src/linux-*
+	kernel=$crux/kernel/linux-*.tar.xz
+	kernel_version=`basename $kernel .tar.xz | sed "s/linux-//"`
+
+	if [ $k = 0 ]; then
+		untar_kernel
 	fi
 
 	echo ""
