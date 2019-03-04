@@ -49,6 +49,7 @@ What timezone are you in? [UTC]
 (A)uto-partition or (F)disk? [a]
 Which filesystem you want to use? ('?' for list) [ext4]
 Size of the swap partition? (in MB) [1024]
+Your CRUX root partition has been mounted at /mnt.
 Core packages only? [y]
 Creating password for root account.
 New password:
