@@ -268,7 +268,6 @@ autopart() {
 	rdiskr=${rdisk}2
 	makefs
 	mount /dev/$rdiskr /mnt
-	echo "Your CRUX root partition has been mounted at /mnt."
 }
 
 makefs() {
@@ -280,6 +279,7 @@ makefs() {
 }
 
 setup() {
+	echo "Your CRUX root partition has been mounted at /mnt."
 	echo ""
 	echo -n "Core packages only? [y] "
 	read resp
