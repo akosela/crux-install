@@ -511,7 +511,7 @@ build_kernel() {
 		;;
 	esac
 
-	cpus=`nproc`
+	cpus=$((`nproc`+1))
 	$chr /bin/bash -c "cd /$DIR && make menuconfig"
 	$chr /bin/bash -c "cd /$DIR && make -j $cpus all"
 	$chr /bin/bash -c "cd /$DIR && make modules_install"
