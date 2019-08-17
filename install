@@ -160,42 +160,50 @@ pdisk() {
 		mount /dev/$rdiskr /mnt
 		rdiskrtmp=$rdiskr
 
-		echo -n "Which partition is the /boot? [none] "
-		read boot
-		if [ ! $boot = '' ]; then
-			rdiskr=$boot
-			makefs
-			mount /dev/$boot /mnt/boot
-		fi
-		echo -n "Which partition is the /home? [none] "
-		read home
-		if [ ! $home = '' ]; then
-			rdiskr=$home
-			makefs
-			mount /dev/$home /mnt/home
-		fi
-		echo -n "Which partition is the /tmp? [none] "
-		read tmp
-		if [ ! $tmp = '' ]; then
-			rdiskr=$tmp
-			makefs
-			mount /dev/$tmp /mnt/tmp
-		fi
-		echo -n "Which partition is the /usr? [none] "
-		read usr
-		if [ ! $usr = '' ]; then
-			rdiskr=$usr
-			makefs
-			mount /dev/$usr /mnt/usr
-		fi
-		echo -n "Which partition is the /var? [none] "
-		read var
-		if [ ! $var = '' ]; then
-			rdiskr=$var
-			makefs
-			mount /dev/$var /mnt/var
-		fi
-		rdiskr=$rdiskrtmp
+		echo -n "Do you have other partitions? [n] "
+		read resp
+		case $resp in
+		[Yy])
+			echo -n "Which partition is the /boot? [none] "
+			read boot
+			if [ ! $boot = '' ]; then
+				rdiskr=$boot
+				makefs
+				mount /dev/$boot /mnt/boot
+			fi
+			echo -n "Which partition is the /home? [none] "
+			read home
+			if [ ! $home = '' ]; then
+				rdiskr=$home
+				makefs
+				mount /dev/$home /mnt/home
+			fi
+			echo -n "Which partition is the /tmp? [none] "
+			read tmp
+			if [ ! $tmp = '' ]; then
+				rdiskr=$tmp
+				makefs
+				mount /dev/$tmp /mnt/tmp
+			fi
+			echo -n "Which partition is the /usr? [none] "
+			read usr
+			if [ ! $usr = '' ]; then
+				rdiskr=$usr
+				makefs
+				mount /dev/$usr /mnt/usr
+			fi
+			echo -n "Which partition is the /var? [none] "
+			read var
+			if [ ! $var = '' ]; then
+				rdiskr=$var
+				makefs
+				mount /dev/$var /mnt/var
+			fi
+			rdiskr=$rdiskrtmp
+			;;
+		*)
+			;;
+		esac
 		;;
 	*)
 		autopart
