@@ -525,45 +525,6 @@ build_kernel() {
 }
 
 bootloader() {
-	echo ""
-	echo "Configuring bootloader."
-	echo -n "(L)ilo or (G)rub? [l] "
-	read resp
-	case $resp in
-	[Gg])
-		if [ `grep ^grub2$ /mnt/var/lib/pkg/db` ]; then
-			grub=/mnt/boot/grub
-			if [ -f $grub/grub.cfg ]; then
-				cp $grub/grub.cfg $grub/grub.cfg.old
-			else
-				mkdir /mnt/boot/grub
-			fi
-
-			if [ -f /mnt/boot/vmlinuz ]; then
-				mv /mnt/boot/vmlinuz /mnt/boot/vmlinuz-1
-				mv /mnt/boot/System.map /mnt/boot/System.map-1
-			fi
-			if [ -f /mnt/boot/vmlinuz.old ]; then
-				mv /mnt/boot/vmlinuz.old /mnt/boot/vmlinuz-old
-				mv /mnt/boot/System.map.old \
-					/mnt/boot/System.map-old
-			fi
-
-			$chr grub-install /dev/$rdisk >/dev/null 2>&1
-			$chr grub-mkconfig -o /boot/grub/grub.cfg
-		else
-			echo "You don't seem to have GRUB2 installed."
-			echo "Falling back to LILO."
-			lilo
-		fi
-		;;
-	*)
-		lilo
-		;;
-	esac
-}
-
-lilo() {
 	if [ -f /mnt/etc/lilo.conf ]; then
 		cp /mnt/etc/lilo.conf /mnt/etc/lilo.conf.old
 	fi

@@ -1,7 +1,7 @@
-## crux-install
+## crux-install 3.4
 
-Interactive installation script for CRUX[1].  It is completely text based and
-assumes sane defaults.  It speeds up CRUX installation by automating manual
+Interactive installation script for CRUX[1] 3.4.  It is completely text based
+and assumes sane defaults.  It speeds up CRUX installation by automating manual
 steps and also allows customization.
 
 ## install
@@ -57,7 +57,6 @@ Please create a local account. [user]
 New password:
 Build your own kernel? [y]
 Download custom .config? [n]
-(L)ilo or (G)rub? [l]
 
 Your CRUX system is ready.  Please reboot.
 Exit to (S)hell, (H)alt, or (R)eboot? [r]
